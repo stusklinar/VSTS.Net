@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Net.Http.Headers;
+using System.Text;
 using VSTS.Net.Interfaces;
 using VSTS.Net.Types;
 
@@ -17,11 +19,14 @@ namespace VSTS.Net.Extensions
         {
             var config = VstsClientConfiguration.Default;
             cfg(config);
-            var httpClient = HttpClientUtil.Create(accessToken);
-            services.AddSingleton<IHttpClient, DefaultHttpClient>(ctx =>
+
+            services.AddHttpClient<IHttpClient,DefaultHttpClient>(client =>
             {
-                var logger = ctx.GetService<ILogger<DefaultHttpClient>>();
-                return new DefaultHttpClient(httpClient, logger);
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(Constants.JsonMimeType));
+                var parameter = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", "", accessToken)));
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(Constants.AuthenticationSchemaBasic, parameter);
+
+
             });
 
             services.AddSingleton<IVstsClient, VstsClient>(ctx => CreateVstsClient(instanceName, ctx, config));
